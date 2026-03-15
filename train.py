@@ -1,63 +1,78 @@
-from utils import crop_dataset, list_dataset, load_dataset, model
+import argparse
+import json
+from pathlib import Path
+
 import numpy as np
-import matplotlib.pyplot as plt
-from PIL import Image
 
-# Define the path for training and validation dataset
-train_path = r"C:\Users\shiva\Deepfont\train"
-valid_path = r"C:\Users\shiva\Deepfont\valid"
+from utils import crop_dataset, list_dataset, load_dataset, build_model, IMG_HEIGHT, IMG_WIDTH
 
-### Run only when required
-## crop_dataset(train_path)
-## crop_dataset(valid_path)
 
-# Loading and pre-processing the training and validation dataset
-train_data, image_count_train, CLASS_NAMES = list_dataset(train_path)
-valid_data, image_count_valid, CLASS_NAMES = list_dataset(valid_path)
-print('Number of training images: {} \nNumber of validation images: {}'.format(image_count_train, image_count_valid))
+def parse_args():
+    parser = argparse.ArgumentParser(description="Train the font classification CNN model.")
+    parser.add_argument("--train-dir", type=Path, default=Path("train"), help="Path to training dataset root")
+    parser.add_argument("--valid-dir", type=Path, default=Path("valid"), help="Path to validation dataset root")
+    parser.add_argument("--epochs", type=int, default=6, help="Number of training epochs")
+    parser.add_argument("--train-batch-size", type=int, default=300, help="Training batch size")
+    parser.add_argument("--valid-batch-size", type=int, default=100, help="Validation batch size")
+    parser.add_argument("--output-model", type=Path, default=Path("CNN_Font_Classification.h5"), help="Output .h5 path")
+    parser.add_argument("--output-labels", type=Path, default=Path("class_names.json"), help="Output class names JSON path")
+    parser.add_argument("--crop-dataset", action="store_true", help="Crop all images to 100x100 before training")
+    return parser.parse_args()
 
-# Showing sample images from the training dataset
-Aller_Bd = list(train_data.glob('Aller_Bd/*'))
-for image_path in Aller_Bd[:3]: Image.open(str(image_path)).show()
 
-# Defining the input parameters for training the model
-TRAIN_BATCH_SIZE = 300
-VALID_BATCH_SIZE = 100
-IMG_HEIGHT = 100
-IMG_WIDTH = 100
-OUTPUT_CLASSES = 100
-STEPS_PER_EPOCH = np.ceil(image_count_train / TRAIN_BATCH_SIZE)
+def validate_dir(path: Path, name: str) -> None:
+    if not path.exists() or not path.is_dir():
+        raise FileNotFoundError(f"{name} not found: {path}")
 
-# Loading the training and validation dataset for training the model
-train_data_gen = load_dataset(train_data, TRAIN_BATCH_SIZE, IMG_HEIGHT, IMG_WIDTH, CLASS_NAMES)
-valid_data_gen = load_dataset(valid_data, VALID_BATCH_SIZE, IMG_HEIGHT, IMG_WIDTH, CLASS_NAMES)
 
-# Plotting the sample images from the training dataset
-def show_batch(image_batch, label_batch):
-    plt.figure(figsize=(3,3))
-    for n in range(9):
-        ax = plt.subplot(3,3,n+1)
-        plt.imshow(image_batch[n])
-        plt.title(CLASS_NAMES[label_batch[n]==1][0].title())
-        plt.axis('off')
+def main():
+    args = parse_args()
 
-image_batch, label_batch = next(train_data_gen)
-show_batch(image_batch, label_batch)
+    validate_dir(args.train_dir, "Train directory")
+    validate_dir(args.valid_dir, "Validation directory")
 
-model.compile(optimizer='Adadelta',
-              loss='categorical_crossentropy',
-              metrics=['accuracy'])
+    if args.crop_dataset:
+        print("Cropping datasets to 100x100...")
+        crop_dataset(str(args.train_dir))
+        crop_dataset(str(args.valid_dir))
 
-model.summary()
+    train_data, image_count_train, class_names = list_dataset(str(args.train_dir))
+    valid_data, image_count_valid, _ = list_dataset(str(args.valid_dir))
 
-# Training the model
-history = model.fit_generator(
-    train_data_gen,
-    steps_per_epoch=STEPS_PER_EPOCH,
-    epochs=6,
-    validation_data=valid_data_gen,
-    validation_steps=image_count_valid // VALID_BATCH_SIZE
-)
+    if image_count_train == 0 or image_count_valid == 0:
+        raise ValueError("Training/validation dataset appears empty. Check dataset paths.")
 
-# Saving the trained model for future use
-model.save('CNN_Font_Classification.h5', overwrite=True)
+    output_classes = len(class_names)
+    print(f"Classes: {output_classes}")
+    print(f"Training images: {image_count_train}")
+    print(f"Validation images: {image_count_valid}")
+
+    steps_per_epoch = int(np.ceil(image_count_train / args.train_batch_size))
+
+    train_data_gen = load_dataset(train_data, args.train_batch_size, IMG_HEIGHT, IMG_WIDTH, class_names)
+    valid_data_gen = load_dataset(valid_data, args.valid_batch_size, IMG_HEIGHT, IMG_WIDTH, class_names)
+
+    model = build_model(output_classes=output_classes, img_height=IMG_HEIGHT, img_width=IMG_WIDTH)
+    model.compile(optimizer='Adadelta', loss='categorical_crossentropy', metrics=['accuracy'])
+    model.summary()
+
+    model.fit(
+        train_data_gen,
+        steps_per_epoch=steps_per_epoch,
+        epochs=args.epochs,
+        validation_data=valid_data_gen,
+        validation_steps=max(1, image_count_valid // args.valid_batch_size),
+    )
+
+    args.output_model.parent.mkdir(parents=True, exist_ok=True)
+    model.save(str(args.output_model), overwrite=True)
+    print(f"Saved model: {args.output_model}")
+
+    args.output_labels.parent.mkdir(parents=True, exist_ok=True)
+    with args.output_labels.open("w", encoding="utf-8") as f:
+        json.dump(class_names.tolist(), f, indent=2)
+    print(f"Saved class labels: {args.output_labels}")
+
+
+if __name__ == "__main__":
+    main()
