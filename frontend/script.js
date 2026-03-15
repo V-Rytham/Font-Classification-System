@@ -6,14 +6,9 @@ const resultsEl = document.getElementById('results');
 const predictionList = document.getElementById('prediction-list');
 const predictBtn = document.getElementById('predict-btn');
 
-const setStatus = (message, isError = false) => {
-  statusEl.textContent = message;
-  statusEl.classList.toggle('error', isError);
-};
-
 fileInput.addEventListener('change', () => {
   const selected = fileInput.files[0];
-  fileName.textContent = selected ? selected.name : 'No file selected';
+  fileName.textContent = selected ? selected.name : 'Choose an image';
 });
 
 form.addEventListener('submit', async (event) => {
@@ -21,14 +16,14 @@ form.addEventListener('submit', async (event) => {
 
   const file = fileInput.files[0];
   if (!file) {
-    setStatus('Please select an image first.', true);
+    statusEl.textContent = 'Please choose an image file.';
     return;
   }
 
   const formData = new FormData();
   formData.append('file', file);
 
-  setStatus('Running prediction...');
+  statusEl.textContent = 'Predicting...';
   resultsEl.classList.add('hidden');
   predictionList.innerHTML = '';
   predictBtn.disabled = true;
@@ -44,21 +39,21 @@ form.addEventListener('submit', async (event) => {
       throw new Error(data.detail || 'Prediction failed.');
     }
 
-    data.predictions.forEach((item) => {
-      const row = document.createElement('li');
-      const font = document.createElement('strong');
+    for (const item of data.predictions) {
+      const li = document.createElement('li');
+      const font = document.createElement('span');
       font.textContent = item.font;
       const confidence = document.createElement('span');
       confidence.textContent = `${(item.confidence * 100).toFixed(2)}%`;
-      row.appendChild(font);
-      row.appendChild(confidence);
-      predictionList.appendChild(row);
-    });
+      li.appendChild(font);
+      li.appendChild(confidence);
+      predictionList.appendChild(li);
+    }
 
     resultsEl.classList.remove('hidden');
-    setStatus('Done.');
+    statusEl.textContent = 'Prediction complete.';
   } catch (error) {
-    setStatus(error.message || 'Something went wrong.', true);
+    statusEl.textContent = error.message;
   } finally {
     predictBtn.disabled = false;
   }

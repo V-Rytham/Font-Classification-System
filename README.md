@@ -1,108 +1,116 @@
 # Font Classification System
 
-This project classifies fonts from word images using a TensorFlow CNN. It also includes a small web app so you can upload an image and run inference from the browser.
+A TensorFlow-based font recognition project with a minimal web application for image upload and font prediction.
 
-## What is in this repository?
+## 1) Repository Analysis
 
-- `train/` and `valid/`: image datasets organized by font name
-- `train.py`: training entrypoint (CLI)
-- `utils.py`: preprocessing helpers + CNN builder
-- `backend/`: FastAPI inference API
-- `frontend/`: static web UI
+This repository contains three major parts:
 
----
+- **Model training code** (`train.py`, `utils.py`)
+- **Single-image prediction script** (`test.py`)
+- **Synthetic data generation tooling** (`trdg/`) used to produce font image datasets
 
-## Local setup (from scratch)
+### ML framework
 
-### 1) Clone and enter the repository
+The model is implemented with **TensorFlow / Keras** (not PyTorch):
 
-```bash
-git clone <your-repo-url>
-cd Font-Classification-System
+- `utils.py` defines a CNN architecture with convolution, pooling, dropout, batch normalization, and dense output layers.
+- Output layer size is configured for **100 font classes**.
+
+### Training and inference flow (original project)
+
+- `train.py`
+  - Loads data from `train/` and `valid/` folders via `ImageDataGenerator.flow_from_directory`.
+  - Trains the CNN.
+  - Saves model as `CNN_Font_Classification.h5`.
+- `test.py`
+  - Loads one test image.
+  - Center-crops/resizes preprocessing to `100x100`.
+  - Loads saved model.
+  - Predicts class index and maps to class name.
+
+### Dataset layout
+
+The repo already includes class-structured datasets:
+
+- `train/<font_name>/*.jpg`
+- `valid/<font_name>/*.jpg`
+
+The class names are inferred from subfolder names.
+
+## 2) Web Application (Added)
+
+A clean, minimal web app is now included.
+
+### New structure
+
+```text
+project/
+├── backend/
+│   ├── inference/
+│   │   └── service.py
+│   └── main.py
+├── frontend/
+│   ├── index.html
+│   ├── styles.css
+│   └── script.js
+├── requirements.txt
+├── train.py
+├── test.py
+├── utils.py
+└── README.md
 ```
 
-### 2) Create a virtual environment
+### Features
 
-**macOS/Linux**
+- Upload image with text
+- Call backend prediction API
+- Show top predicted fonts with confidence
+- Minimal black/white/gray UI with centered card layout
 
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-```
+## 3) Local Setup
 
-**Windows (PowerShell)**
+## Prerequisites
 
-```powershell
-python -m venv .venv
-.venv\Scripts\Activate.ps1
-```
+- Python 3.10+ recommended
+- `pip`
 
-### 3) Install dependencies
+## Install dependencies
 
 ```bash
-pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
----
+## Model requirement
 
-## If you do not have `CNN_Font_Classification.h5`
+The API expects a trained model at:
 
-That is expected for a fresh setup. Train it once using the dataset already in this repo.
+- `./CNN_Font_Classification.h5` (default)
 
-### 1) Sanity-check dataset folders
-
-```bash
-python - <<'PY'
-from pathlib import Path
-train = Path('train')
-valid = Path('valid')
-print('train exists:', train.exists())
-print('valid exists:', valid.exists())
-print('train classes:', len([p for p in train.iterdir() if p.is_dir()]))
-print('valid classes:', len([p for p in valid.iterdir() if p.is_dir()]))
-PY
-```
-
-### 2) Train the model
+If your model is elsewhere, set environment variable:
 
 ```bash
-python train.py --epochs 6 --train-dir train --valid-dir valid --output-model CNN_Font_Classification.h5
+export MODEL_PATH=/absolute/path/to/CNN_Font_Classification.h5
 ```
 
-This command writes:
-
-- `CNN_Font_Classification.h5`
-- `class_names.json`
-
-`class_names.json` is important because it keeps class index mapping consistent during inference.
-
-### 3) (Optional) quick smoke run for low-resource machines
+Optional class directory override:
 
 ```bash
-python train.py --epochs 1 --train-batch-size 64 --valid-batch-size 32
+export CLASSES_DIR=/absolute/path/to/train
 ```
-
----
 
 ## Run the web app
-
-Start the API server:
 
 ```bash
 uvicorn backend.main:app --host 0.0.0.0 --port 8000
 ```
 
-Open these URLs:
+Open:
 
-- App UI: `http://localhost:8000`
-- Health endpoint: `http://localhost:8000/api/health`
+- `http://localhost:8000` for UI
+- `http://localhost:8000/api/health` for backend status
 
-If the health response reports `"status": "ready"`, the model loaded correctly.
-
----
-
-## API usage
+## 4) API Usage
 
 ### Health check
 
@@ -110,55 +118,55 @@ If the health response reports `"status": "ready"`, the model loaded correctly.
 curl http://localhost:8000/api/health
 ```
 
-### Prediction
+### Predict font(s)
 
 ```bash
 curl -X POST "http://localhost:8000/api/predict?top_k=3" \
   -F "file=@test/advisorily_157.jpg"
 ```
 
----
+Response format:
 
-## Common issues
-
-### `status: degraded` in `/api/health`
-
-Usually means the model path is wrong or the model file is missing.
-
-If your model is stored elsewhere:
-
-**macOS/Linux**
-
-```bash
-export MODEL_PATH=/absolute/path/to/CNN_Font_Classification.h5
-export CLASSES_DIR=/absolute/path/to/train
+```json
+{
+  "predictions": [
+    {"font": "Roboto-Bold", "confidence": 0.913245},
+    {"font": "Roboto-Regular", "confidence": 0.046219},
+    {"font": "OpenSans-Bold", "confidence": 0.015111}
+  ]
+}
 ```
 
-**Windows (PowerShell)**
+## 5) Training the Model (Original Scripts)
 
-```powershell
-$env:MODEL_PATH="C:\absolute\path\to\CNN_Font_Classification.h5"
-$env:CLASSES_DIR="C:\absolute\path\to\train"
-```
+The original scripts in this repository use local hardcoded paths. Update paths in `train.py`/`test.py` or refactor before retraining.
 
-Then run uvicorn again.
+Typical flow:
 
-### Training is slow
+1. Ensure dataset in `train/` and `valid/`
+2. Run training script
+3. Save model as `CNN_Font_Classification.h5`
+4. Start API and test upload via UI
 
-- reduce epochs (`--epochs 1` for a first pass)
-- lower batch sizes
-- use GPU TensorFlow if available
+## 6) Runtime and low-resource notes
 
----
+- TensorFlow can be heavy on memory/CPU.
+- For low-resource deployments:
+  - Use CPU builds (`tensorflow` CPU wheel depending on platform).
+  - Run with a single API worker.
+  - Keep `top_k` small.
+  - Consider model quantization/export to TFLite in a future iteration.
 
-## Notes
+## 7) Free hosting options
 
-- The backend reads labels from `class_names.json` when present.
-- If `class_names.json` is missing, it falls back to reading class folder names from `CLASSES_DIR`.
+- **Render** (web service, easy FastAPI deployment)
+- **Railway** (simple app deployment)
+- **Hugging Face Spaces** (Docker/Gradio/Static options)
+- **Fly.io** (containerized deployment)
 
----
+For best portability, deploy with Docker and set `MODEL_PATH` + `CLASSES_DIR` through environment variables.
 
-## Credits
+## 8) Credits
 
 - Original project: Shubham Kapoor
-- TRDG toolkit: Edouard Belval
+- Dataset generation tooling: TRDG (Edouard Belval)

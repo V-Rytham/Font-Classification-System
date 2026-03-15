@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import List
@@ -26,40 +25,23 @@ class FontClassifierService:
         self.model: tf.keras.Model | None = None
         self.class_names: List[str] = []
 
-    def _labels_from_json(self) -> List[str]:
-        labels_path = self.model_path.with_name("class_names.json")
-        if not labels_path.exists():
-            return []
-
-        with labels_path.open("r", encoding="utf-8") as f:
-            labels = json.load(f)
-
-        if not isinstance(labels, list) or not all(isinstance(x, str) for x in labels):
-            raise ValueError(f"Invalid label file format: {labels_path}")
-
-        return labels
-
     def load(self) -> None:
         if not self.model_path.exists():
             raise FileNotFoundError(
                 f"Model file not found: {self.model_path}. Train the model first or provide MODEL_PATH."
             )
 
-        json_labels = self._labels_from_json()
-        if json_labels:
-            self.class_names = json_labels
-        else:
-            if not self.classes_dir.exists():
-                raise FileNotFoundError(
-                    f"Classes directory not found: {self.classes_dir}."
-                )
-
-            self.class_names = sorted(
-                [p.name for p in self.classes_dir.iterdir() if p.is_dir() and p.name != "LICENSE.txt"]
+        if not self.classes_dir.exists():
+            raise FileNotFoundError(
+                f"Classes directory not found: {self.classes_dir}."
             )
 
+        self.class_names = sorted(
+            [p.name for p in self.classes_dir.iterdir() if p.is_dir() and p.name != "LICENSE.txt"]
+        )
+
         if not self.class_names:
-            raise ValueError("No font class labels found.")
+            raise ValueError(f"No font class folders found in {self.classes_dir}.")
 
         self.model = tf.keras.models.load_model(str(self.model_path))
 
