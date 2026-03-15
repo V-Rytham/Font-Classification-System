@@ -1,0 +1,145 @@
+:root {
+  --bg: #f3f4f6;
+  --panel: #ffffff;
+  --text: #111827;
+  --muted: #6b7280;
+  --border: #d1d5db;
+  --border-strong: #9ca3af;
+  --accent: #111111;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.layout {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 32px 20px;
+}
+
+.panel {
+  width: min(620px, 100%);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 28px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.04);
+}
+
+.panel-header h1 {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.panel-header p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.form {
+  margin-top: 24px;
+}
+
+.file-field {
+  display: grid;
+  gap: 8px;
+}
+
+.file-label {
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.file-field input[type="file"] {
+  display: block;
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+  background: #fff;
+}
+
+.file-name {
+  min-height: 1.2rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+button {
+  margin-top: 14px;
+  width: 100%;
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button:hover:enabled {
+  background: #1f2937;
+}
+
+button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.status {
+  min-height: 1.3rem;
+  margin: 16px 0 0;
+  color: var(--muted);
+  font-size: 0.93rem;
+}
+
+.status.error {
+  color: #b91c1c;
+}
+
+.results {
+  margin-top: 20px;
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+}
+
+.results h2 {
+  margin: 0 0 10px;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.results ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.results li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid #eef0f3;
+}
+
+.results li:last-child {
+  border-bottom: 0;
+}
+
+.hidden {
+  display: none;
+}

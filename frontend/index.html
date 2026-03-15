@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Font Classifier</title>
+    <link rel="stylesheet" href="/frontend/styles.css" />
+  </head>
+  <body>
+    <main class="layout">
+      <section class="panel" aria-labelledby="app-title">
+        <header class="panel-header">
+          <h1 id="app-title">Font Classifier</h1>
+          <p>Upload a text image and get the top predicted fonts.</p>
+        </header>
+
+        <form id="upload-form" class="form">
+          <label class="file-field" for="file-input">
+            <span class="file-label">Image file</span>
+            <input id="file-input" name="file" type="file" accept="image/*" required />
+            <span id="file-name" class="file-name">No file selected</span>
+          </label>
+          <button id="predict-btn" type="submit">Run prediction</button>
+        </form>
+
+        <p id="status" class="status" role="status" aria-live="polite"></p>
+
+        <section id="results" class="results hidden" aria-live="polite">
+          <h2>Top predictions</h2>
+          <ul id="prediction-list"></ul>
+        </section>
+      </section>
+    </main>
+
+    <script src="/frontend/script.js"></script>
+  </body>
+</html>
